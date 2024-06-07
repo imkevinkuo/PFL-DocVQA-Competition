@@ -9,8 +9,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='PFL-DocVQA Baseline')
 
     # Required
-    parser.add_argument('-m', '--model', type=str, required=True, help='Path to yml file with model configuration.')
-    parser.add_argument('-d', '--dataset', type=str, required=True, help='Path to yml file with dataset configuration.')
+    parser.add_argument('-m', '--model', type=str, default='VT5', help='Path to yml file with model configuration.')
+    parser.add_argument('-d', '--dataset', type=str, default='PFL-DocVQA', help='Path to yml file with dataset configuration.')
 
     # Optional
     parser.add_argument('--eval-start', action='store_true', default=True, help='Whether to evaluate the model before training or not.')
@@ -24,16 +24,27 @@ def parse_args():
     parser.add_argument('--save-dir', type=str, help='Seed to allow reproducibility.')
 
     # Flower
-    parser.add_argument('--flower', action='store_true', default=False, help='Use FL Flower.')
-    parser.add_argument('--sample_clients', type=int, help='Number of sampled clients during FL.')
-    parser.add_argument('--num_rounds', type=int, help='Number of FL rounds.')
+    parser.add_argument('--flower', default=True, help='Use FL Flower.')
+    parser.add_argument('--sample_clients', type=int, default=1, help='Number of sampled clients during FL.')
+    parser.add_argument('--num_rounds', type=int, default=8, help='Number of FL rounds.')
     # parser.add_argument('--client_sampling_probability', type=float, help='.')  # (Number of selected clients / total number of clients)
-    parser.add_argument('--iterations_per_fl_round', type=int, help='Number of iterations per provider during each FL round.')
+    parser.add_argument('--iterations_per_fl_round', type=int, default=1, help='Number of iterations per provider during each FL round.')
     parser.add_argument('--providers_per_fl_round', type=int, help='Number of groups (providers) sampled in each FL Round.')
 
     parser.add_argument('--use_dp', action='store_true', default=False, help='Add Differential Privacy noise.')
     parser.add_argument('--sensitivity', type=float, help='Upper bound of the contribution per group (provider).')
     parser.add_argument('--noise_multiplier', type=float, help='Noise multiplier.')
+
+    parser.add_argument('--lora_rank',      type=int, default=6)
+    parser.add_argument('--lora_alpha',     type=int, default=16)
+    parser.add_argument('--client_id',      type=int, default=-1, help='If not -1, runs local training on this client only and then exits.')
+    parser.add_argument('--gpus',           type=int, default=8,  help='Number of GPUs; total batch size is (gpus x batch_size)')
+    parser.add_argument('--name',           type=str, help='Folder to save results')
+    parser.add_argument('--ckpt',           type=str, help='Loads a LoRA adapter using this path')
+    parser.add_argument('--quantize',       action='store_true', default=False, help='Whether to quantize updates to NF4')
+    parser.add_argument('--eval_ckpt',      action='store_true', default=False, help='If true, loads args.ckpt, runs validation, then exits.')
+    parser.add_argument('--merge_lora',     action='store_true', default=False, help='If true, loads args.ckpt, merges the LoRA adapters, and saves using the competition format.')
+    parser.add_argument('--model_agg',      action='store_true', default=False, help='If true, loads args.ckpt (comma-separated list) and saves the average in a new checkpoint.')
 
     return parser.parse_args()
 

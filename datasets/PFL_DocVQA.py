@@ -1,7 +1,9 @@
 import os, random
 from PIL import Image
 from torch.utils.data import Dataset
-
+# Some files cannot be loaded unless this flag is set to True
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 import numpy as np
 
 

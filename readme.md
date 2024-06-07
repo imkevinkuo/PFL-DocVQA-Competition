@@ -1,64 +1,86 @@
 # PFL-DocVQA Competition
 
-This repository is intended to provide a base framework and method for the [PFL-DocVQA Competition](http://158.109.8.94/?ch=2&com=introduction).
+Please refer to https://github.com/rubenpt91/PFL-DocVQA-Competition/tree/master for the full instructions.
 
-<div style="text-align: justify;">
-The objective of the Privacy Preserving Federated Learning Document VQA (PFL-DocVQA) competition is to develop privacy-preserving solutions for fine-tuning multi-modal language models for document understanding on distributed data.
-We seek efficient federated learning solutions for finetuning a pre-trained generic Document Visual Question Answering (DocVQA) model on a new domain, that of invoice processing.
+# Track 1 Submission: LoRA with Quantized Communication (CMU)
 
-Automatically managing the information of document workflows is a core aspect of business intelligence and process automation.
-Reasoning over the information extracted from documents fuels subsequent decision-making processes that can directly affect humans, especially in sectors such as finance, legal or insurance.
-At the same time, documents tend to contain private information, restricting access to them during training.
-This common scenario requires training large-scale models over private and widely distributed data.
+## Setup
+Follow the instructions in https://github.com/rubenpt91/PFL-DocVQA-Competition/blob/master/framework_documentation/how_to_use.md#download-dataset to set up the workspace.
 
-Please, if you plan to participate in the Competition, read the [participation instructions](https://benchmarks.elsa-ai.eu/?ch=2&com=tasks#participating_rules) carefully.
-</div>
-
-## How to use
-To set up and use the framework please check [How to use](framework_documentation/how_to_use.md#how-to-use) instructions.
-
-
-## Dataset
-
-<div style="text-align: justify;">
-The dataset is split into Blue and Red data. Moreover, the Blue training set is further divided into 10 different clients.
-The whole dataset comprises around 1M question-answer pairs on 109,727 document images from 6,574 unique providers.
-In this competition, we will only use a reasonable set of the full dataset. 251,810 question-answer pairs are available for training and validation, while 43,591 pairs will be used for testing.
-The rest of the dataset will be available after the competition period.
-
-If you want to download the dataset, you can do so in the [ELSA Benchmarks Competition platform](http://158.109.8.94/?ch=2&com=introduction).
-For this framework, you will need to download the IMDBs (which contains processed QAs and OCR) and the images.
-All the downloads must be performed through the RRC portal.
-</div>
-
-| Dataset    | Link                                        |
-|------------|---------------------------------------------|
-| PFL-DocVQA | [Link](https://benchmarks.elsa-ai.eu/?ch=2) |
-
-
-## PFL-DocVQA models weights
-
-<div style="text-align: justify;">
-We provide pre-trained weights on SP-DocVQA dataset to allow the particiapnts start from a common starting point. 
-</div>
-
-| Model    |                                 Weights HF name                                  | Parameters |
-|:---------|:------------------------------------------------------------------------------:|:----------:|
-| VT5 base | [rubentito/vt5-base-spdocvqa](https://huggingface.co/rubentito/vt5-base-spdocvqa)  |   316M     | 
-
-## Metrics
-
-**Average Normalized Levenshtein Similarity (ANLS)** <br>
-The standard metric for text-based VQA tasks (ST-VQA and DocVQA). It evaluates the method's reasoning capabilities while smoothly penalizes OCR recognition errors. <br>
-Check [Scene Text Visual Question Answering](https://arxiv.org/abs/1905.13648) for more details.
-
-## Citation
-If you use this dataset or code, please cite our [paper](https://arxiv.org/pdf/2312.10108.pdf).
+We additionally require Tensorflow (for logging) and PEFT (for LoRA). These should be install via pip:
 ```
-@article{tito2023privacy,
-  title={Privacy-Aware Document Visual Question Answering},
-  author={Tito, Rub{\`e}n and Nguyen, Khanh and Tobaben, Marlon and Kerkouche, Raouf and Souibgui, Mohamed Ali and Jung, Kangsoo and Kang, Lei and Valveny, Ernest and Honkela, Antti and Fritz, Mario and Karatzas, Dimosthenis},
-  journal={arXiv preprint arXiv:2312.10108},
-  year={2023}
-}
+python -m pip install tensorflow_cpu peft
 ```
+
+## How to run
+
+Our code adds three new scripts:
+- `fl_train.py` is a parallel script that contains most of the code for FL training.
+- `fl_utils.py` loads the checkpoints from `fl_train.py`, merges them with the backbone architecture, and then saves it using the competition format.
+- `fl_quant.py` contains helper functions for NF4 quantization.
+
+To train LoRA with the default competition hyperparameters (1 round / 2 clients per round), run:
+
+```
+python fl_train.py  --name path_to_run_folder --num_rounds 8 --sample_clients 2 --iterations_per_fl_round 1
+```
+
+To train LoRA with more efficient communication, we can use more local epochs, a single client per round, and NF4 quantization:
+
+```
+python fl_train.py  --name path_to_run_folder --num_rounds 2 --sample_clients 1 --iterations_per_fl_round 16 --quantize
+```
+
+By default, we use rank=6, learning rate 2e-4, and batch size 16 (2 for each GPU on 8 GPUs).
+
+To separately run validation on a saved checkpoint, run:
+
+```
+python fl_train.py  --eval_ckpt --ckpt /path_to_run_folder/my_checkpoint.ckpt
+```
+
+To merge the LoRA adapters and generate the full model checkpoint used for submission, run:
+```
+python fl_utils.py  --merge_lora --ckpt /path_to_run_folder/my_checkpoint.ckpt
+```
+
+The checkpoint is saved as a folder `/path_to_run_folder/my_checkpoint_merged.ckpt`.
+
+```
+cd path_to_run_folder
+zip my_checkpoint_merged.ckpt.zip my_checkpoint_merged.ckpt -r
+```
+
+We then upload the file `my_checkpoint_merged.ckpt.zip` to the ELSA submission server.
+
+## Editing
+
+Our code adds several new arguments in `utils.py` in order to use the original config loading code. See `utils.py` for more details.
+
+Our code uses PyTorch Distributed; see [Writing Distributed Applications with PyTorch
+](https://pytorch.org/tutorials/intermediate/dist_tuto.html).
+
+## Reproducing Efficient Results
+
+To reproduce our most efficient results, we use the following commands:
+
+```
+python fl_train.py  --name c0 --client_id 0 --iterations_per_fl_round 16
+```
+
+If `--client_id` is specified, `fl_train.py` will only train on `--client_id`. Here, we train on client 0 for 16 epochs. The checkpoint is saved in `c0/epoch_15.ckpt`. 
+
+```
+python fl_train.py  --name c1 --client_id 1 --ckpt c0/epoch_15.ckpt --quantize --iterations_per_fl_round 16
+```
+
+Adding the `--quantize` flag will load a quantized version of `c0/epoch_15.ckpt`. This simulates the quantization that clients perform when uploading their model update. We then train on client 1 for 16 epochs. This new checkpoint is saved in `c1/epoch_15.ckpt`.
+
+*We also allow the user to include `--quantize` in FL training, which will perform this upload quantization automatically. If sampling more than one client per round, the parameters will no longer be quantized after aggregation. Therefore, we quantize the parameters again before download.*
+
+
+```
+python fl_utils.py --ckpt c1/epoch_15.ckpt --merge_lora --quantize
+```
+
+`fl_utils.py` saves the final merged checkpoint in a folder called `c1/epoch_15_merged.ckpt`.

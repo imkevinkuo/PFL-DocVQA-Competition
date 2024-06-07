@@ -41,7 +41,7 @@ def build_model(config):
     else:
         raise ValueError("Value '{:s}' for model selection not expected. Please choose one of {:}".format(config.model_name, ', '.join(available_models)))
 
-    model.model.to(config.device)
+    # model.model.to(config.device) # we handle device placement in the main training code
     return model
 
 

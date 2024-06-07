@@ -33,7 +33,8 @@ def evaluate(data_loader, model, evaluator, config):
     all_pred_answers = []
     model.model.eval()
 
-    for batch_idx, batch in enumerate(tqdm(data_loader)):
+    # for batch_idx, batch in enumerate(tqdm(data_loader)):
+    for batch_idx, batch in enumerate(data_loader): # remove tqdm
         bs = len(batch['question_id'])
         with torch.no_grad():
             outputs, pred_answers, answer_conf = model.forward(batch, return_pred_answer=True)

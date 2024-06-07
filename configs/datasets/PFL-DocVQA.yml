@@ -1,4 +1,4 @@
 dataset_name: PFL-DocVQA
-imdb_dir: /SSD2/Datasets/PFL-DocVQA/imdb
-images_dir: /SSD2/Datasets/PFL-DocVQA/images
-provider_docs: /SSD2/Datasets/PFL-DocVQA/imdb/data_points.json
+imdb_dir: /projects/smith/kkuo2/pfl_docvqa/imdb
+images_dir: /projects/smith/kkuo2/pfl_docvqa/images
+provider_docs: /projects/smith/kkuo2/pfl_docvqa/data_points.json

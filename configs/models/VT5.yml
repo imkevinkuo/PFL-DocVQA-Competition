@@ -1,7 +1,6 @@
 save_dir: save/
 model_name: VT5
 model_weights: rubentito/vt5-base-spdocvqa
-# model_weights: /data/shared/PFL-DocVQA/Checkpoints/vt5_sp-docvqa.ckpt
 max_input_tokens: 512
 device: cuda
 seed: 42
@@ -13,7 +12,7 @@ visual_module:
 
 training_parameters:
   lr: 2e-4  # 2e-4
-  batch_size: 10
+  batch_size: 2
   # warmup_iterations: 1000
 
 fl_parameters:
